@@ -168,7 +168,7 @@ function LoginForm({ onSubmitted }: { onSubmitted: VoidFunction }) {
   });
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { email: 'thanh.dinh@executionlab.asia', password: '123456' },
+    defaultValues: { email: '', password: '' },
   });
 
   const onSubmit = form.handleSubmit(async payload => {
@@ -284,64 +284,64 @@ function MatchBoardContent({
           <Dialog>
             <DialogTrigger className="w-full text-lg">{data.set[tab].name.a}</DialogTrigger>
             <DialogContent>
-              <NameForm id={id} set="st" team="a" name={data.set.st.name.a} />
+              <NameForm id={id} set={tab} team="a" name={data.set[tab].name.a} />
             </DialogContent>
           </Dialog>
-          <p className="text-center text-4xl font-bold">{data.set.st.score.a}</p>
+          <p className="text-center text-4xl font-bold">{data.set[tab].score.a}</p>
           <Dialog>
             <DialogTrigger asChild>
               <div className="px-2">
                 <div className="flex items-center gap-2 justify-end">
-                  <p>{data.set.st.player.a[0].name}</p>
-                  <StartServe active={data.set.st.player.a[0].serve} />
+                  <p>{data.set[tab].player.a[0].name}</p>
+                  <StartServe active={data.set[tab].player.a[0].serve} />
                 </div>
                 <div className="flex items-center gap-2 justify-end">
-                  <p>{data.set.st.player.a[1].name}</p>
-                  <StartServe active={data.set.st.player.a[1].serve} />
+                  <p>{data.set[tab].player.a[1].name}</p>
+                  <StartServe active={data.set[tab].player.a[1].serve} />
                 </div>
               </div>
             </DialogTrigger>
             <DialogContent>
               <PlayerNameForm
                 id={id}
-                set="st"
+                set={tab}
                 team="a"
-                name1={data.set.st.player.a[0].name}
-                name2={data.set.st.player.a[1].name}
+                name1={data.set[tab].player.a[0].name}
+                name2={data.set[tab].player.a[1].name}
               />
             </DialogContent>
           </Dialog>
         </div>
       </Card>
-      <Card>
+      <Card className="mt-2">
         <div>
           <Dialog>
-            <DialogTrigger className="w-full text-lg">{data.set.st.name.b}</DialogTrigger>
+            <DialogTrigger className="w-full text-lg">{data.set[tab].name.b}</DialogTrigger>
             <DialogContent>
-              <NameForm id={id} set="st" team="b" name={data.set.st.name.b} />
+              <NameForm id={id} set={tab} team="b" name={data.set[tab].name.b} />
             </DialogContent>
           </Dialog>
-          <p className="text-center text-4xl font-bold">{data.set.st.score.b}</p>
+          <p className="text-center text-4xl font-bold">{data.set[tab].score.b}</p>
           <Dialog>
             <DialogTrigger asChild>
               <div className="px-2">
                 <div className="flex items-center gap-2 justify-start">
-                  <StartServe active={data.set.st.player.b[0].serve} />
-                  <p>{data.set.st.player.b[0].name}</p>
+                  <StartServe active={data.set[tab].player.b[0].serve} />
+                  <p>{data.set[tab].player.b[0].name}</p>
                 </div>
                 <div className="flex items-center gap-2 justify-start">
-                  <StartServe active={data.set.st.player.b[1].serve} />
-                  <p>{data.set.st.player.b[1].name}</p>
+                  <StartServe active={data.set[tab].player.b[1].serve} />
+                  <p>{data.set[tab].player.b[1].name}</p>
                 </div>
               </div>
             </DialogTrigger>
             <DialogContent>
               <PlayerNameForm
                 id={id}
-                set="st"
+                set={tab}
                 team="b"
-                name1={data.set.st.player.b[0].name}
-                name2={data.set.st.player.b[1].name}
+                name1={data.set[tab].player.b[0].name}
+                name2={data.set[tab].player.b[1].name}
               />
             </DialogContent>
           </Dialog>
@@ -357,26 +357,26 @@ function MatchBoardContent({
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <div className="flex gap-1">
-                    <Button size="icon" onClick={() => match.updateScore(id, 'st', 'a', -1)}>
+                    <Button size="icon" onClick={() => match.updateScore(id, tab, 'a', -1)}>
                       <IcMinus />
                     </Button>
                     <div className="flex-1">
-                      <p className="font-bold text-center text-4xl">{data.set.st.score.a}</p>
+                      <p className="font-bold text-center text-4xl">{data.set[tab].score.a}</p>
                     </div>
-                    <Button size="icon" onClick={() => match.updateScore(id, 'st', 'a', 1)}>
+                    <Button size="icon" onClick={() => match.updateScore(id, tab, 'a', 1)}>
                       <IcPlus />
                     </Button>
                   </div>
                   <div>
                     <div className="flex gap-2 justify-end">
-                      <p>{data.set.st.player.a[0].name}</p>
+                      <p>{data.set[tab].player.a[0].name}</p>
                       <div>
                         <Checkbox
-                          checked={data.set.st.player.a[0].serve}
+                          checked={data.set[tab].player.a[0].serve}
                           onCheckedChange={checked => {
                             match.updatePlayer(
                               id,
-                              'st',
+                              tab,
                               produce(data, draft => {
                                 draft.set.st.player.a[0].serve =
                                   checked === 'indeterminate' ? false : checked;
@@ -390,14 +390,14 @@ function MatchBoardContent({
                       </div>
                     </div>
                     <div className="flex gap-2 justify-end">
-                      <p>{data.set.st.player.a[1].name}</p>
+                      <p>{data.set[tab].player.a[1].name}</p>
                       <div>
                         <Checkbox
-                          checked={data.set.st.player.a[1].serve}
+                          checked={data.set[tab].player.a[1].serve}
                           onCheckedChange={checked => {
                             match.updatePlayer(
                               id,
-                              'st',
+                              tab,
                               produce(data, draft => {
                                 draft.set.st.player.a[0].serve = false;
                                 draft.set.st.player.a[1].serve =
@@ -415,7 +415,7 @@ function MatchBoardContent({
                       onClick={() => {
                         match.updatePlayer(
                           id,
-                          'st',
+                          tab,
                           produce(data, draft => {
                             draft.set.st.player.a.reverse();
                           }).set.st.player
@@ -428,13 +428,13 @@ function MatchBoardContent({
                 </div>
                 <div>
                   <div className="flex gap-1">
-                    <Button size="icon" onClick={() => match.updateScore(id, 'st', 'b', -1)}>
+                    <Button size="icon" onClick={() => match.updateScore(id, tab, 'b', -1)}>
                       <IcMinus />
                     </Button>
                     <div className="flex-1">
-                      <p className="font-bold text-center text-4xl">{data.set.st.score.b}</p>
+                      <p className="font-bold text-center text-4xl">{data.set[tab].score.b}</p>
                     </div>
-                    <Button size="icon" onClick={() => match.updateScore(id, 'st', 'b', 1)}>
+                    <Button size="icon" onClick={() => match.updateScore(id, tab, 'b', 1)}>
                       <IcPlus />
                     </Button>
                   </div>
@@ -442,11 +442,11 @@ function MatchBoardContent({
                     <div className="flex gap-2 justify-start">
                       <div>
                         <Checkbox
-                          checked={data.set.st.player.b[0].serve}
+                          checked={data.set[tab].player.b[0].serve}
                           onCheckedChange={checked => {
                             match.updatePlayer(
                               id,
-                              'st',
+                              tab,
                               produce(data, draft => {
                                 draft.set.st.player.a[0].serve = false;
                                 draft.set.st.player.a[1].serve = false;
@@ -458,16 +458,16 @@ function MatchBoardContent({
                           }}
                         />
                       </div>
-                      <p>{data.set.st.player.b[0].name}</p>
+                      <p>{data.set[tab].player.b[0].name}</p>
                     </div>
                     <div className="flex gap-2 justify-start">
                       <div>
                         <Checkbox
-                          checked={data.set.st.player.b[1].serve}
+                          checked={data.set[tab].player.b[1].serve}
                           onCheckedChange={checked => {
                             match.updatePlayer(
                               id,
-                              'st',
+                              tab,
                               produce(data, draft => {
                                 draft.set.st.player.a[0].serve = false;
                                 draft.set.st.player.a[1].serve = false;
@@ -479,14 +479,14 @@ function MatchBoardContent({
                           }}
                         />
                       </div>
-                      <p>{data.set.st.player.b[1].name}</p>
+                      <p>{data.set[tab].player.b[1].name}</p>
                     </div>
                     <Button
                       className="w-full"
                       onClick={() => {
                         match.updatePlayer(
                           id,
-                          'st',
+                          tab,
                           produce(data, draft => {
                             draft.set.st.player.b.reverse();
                           }).set.st.player
