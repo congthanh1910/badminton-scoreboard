@@ -170,12 +170,7 @@ function LoginForm({ onSubmitted }: { onSubmitted: VoidFunction }) {
       .min(1)
       .email()
       .transform(val => val.toLowerCase()),
-    password: z
-      .string()
-      .trim()
-      .min(6)
-      .max(32)
-      .transform(val => val.toLowerCase()),
+    password: z.string().trim().min(6).max(32),
   });
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
@@ -205,7 +200,7 @@ function LoginForm({ onSubmitted }: { onSubmitted: VoidFunction }) {
             <div className="space-y-2">
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input {...field} disabled={isSubmitting} />
+                <Input autoComplete="email" {...field} disabled={isSubmitting} />
               </FormControl>
               <FormMessage />
             </div>
