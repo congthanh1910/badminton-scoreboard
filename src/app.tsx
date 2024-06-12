@@ -8,7 +8,7 @@ const client = new QueryClient();
 
 export default function App() {
   const isMediumDevice = useMediaQuery('only screen and (max-width : 769px)');
-  if (!isMediumDevice) return 'Not supported';
+  if (!isMediumDevice) return 'Not supported screen size larger 769px';
   return (
     <BrowserRouter>
       <QueryClientProvider client={client}>
