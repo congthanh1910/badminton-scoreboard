@@ -27,7 +27,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { Form, FormControl, FormField, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { get } from 'lodash';
+import get from 'lodash/get';
 import { useMutation } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -181,7 +181,7 @@ function LoginForm({ onSubmitted }: { onSubmitted: VoidFunction }) {
   });
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { email: 'demo@abc.xyz', password: '1234567890' },
   });
 
   const onSubmit = form.handleSubmit(async payload => {

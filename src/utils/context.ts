@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { isNull } from 'lodash';
+import isNull from 'lodash/isNull';
 import { Nullable } from '@/utils/types';
 
 export function makeUseContext<T>(context: React.Context<Nullable<T>>, name: string) {

@@ -18,7 +18,7 @@ import {
   signOut,
 } from 'firebase/auth';
 import { Nullable } from '@/utils/types';
-import { pick } from 'lodash';
+import pick from 'lodash/pick';
 
 const app = initializeApp({
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
