@@ -258,8 +258,8 @@ function Dashboard() {
   const [value, setValue] = useState('');
   const { mutate: find, isPending: isPendingFind } = useMutation({
     mutationFn: (id: string) => match.get(id),
-    onSuccess: data => (!data ? toast.error('Not found') : navigate(data.id)),
-    onError: () => toast.error('Something went wrong'),
+    onSuccess: data => (!data ? toast.error('Not found', { id: 'not-found' }) : navigate(data.id)),
+    onError: () => toast.error('Something went wrong', { id: 'something-went-wrong' }),
   });
 
   const isPending = isPendingCreate || isPendingFind;
