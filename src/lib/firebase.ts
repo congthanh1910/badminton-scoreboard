@@ -116,29 +116,23 @@ export class Match {
 export interface IMatch {
   id: string;
   set: {
-    st: {
-      name: { a: string; b: string };
-      score: { a: number; b: number };
-      player: {
-        a: [{ name: string; serve: boolean }, { name: string; serve: boolean }];
-        b: [{ name: string; serve: boolean }, { name: string; serve: boolean }];
-      };
-    };
-    nd: {
-      name: { a: string; b: string };
-      score: { a: number; b: number };
-      player: {
-        a: [{ name: string; serve: boolean }, { name: string; serve: boolean }];
-        b: [{ name: string; serve: boolean }, { name: string; serve: boolean }];
-      };
-    };
-    rd: {
-      name: { a: string; b: string };
-      score: { a: number; b: number };
-      player: {
-        a: [{ name: string; serve: boolean }, { name: string; serve: boolean }];
-        b: [{ name: string; serve: boolean }, { name: string; serve: boolean }];
-      };
-    };
+    st: { name: IName; score: IScore; player: IPlayer };
+    nd: { name: IName; score: IScore; player: IPlayer };
+    rd: { name: IName; score: IScore; player: IPlayer };
   };
+}
+
+interface IPlayer {
+  a: [{ name: string; serve: boolean }, { name: string; serve: boolean }];
+  b: [{ name: string; serve: boolean }, { name: string; serve: boolean }];
+}
+
+interface IName {
+  a: string;
+  b: string;
+}
+
+interface IScore {
+  a: number;
+  b: number;
 }

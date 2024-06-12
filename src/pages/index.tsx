@@ -260,6 +260,7 @@ function MatchBoard({ id }: { id: string }) {
   }, [id]);
   const [tab, setTab] = useState<'st' | 'nd' | 'rd'>('st');
   if (!data) return null;
+  const props = { data, id };
   return (
     <Tabs
       value={tab}
@@ -268,13 +269,13 @@ function MatchBoard({ id }: { id: string }) {
       }}
     >
       <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="st">st</TabsTrigger>
-        <TabsTrigger value="nd">nd</TabsTrigger>
-        <TabsTrigger value="rd">rd</TabsTrigger>
+        <TabsTrigger value="st">1st</TabsTrigger>
+        <TabsTrigger value="nd">2nd</TabsTrigger>
+        <TabsTrigger value="rd">3rd</TabsTrigger>
       </TabsList>
-      <MatchBoardContent data={data} id={id} tab="st" />
-      <MatchBoardContent data={data} id={id} tab="nd" />
-      <MatchBoardContent data={data} id={id} tab="rd" />
+      <MatchBoardContent {...props} tab="st" />
+      <MatchBoardContent {...props} tab="nd" />
+      <MatchBoardContent {...props} tab="rd" />
     </Tabs>
   );
 }
@@ -288,6 +289,29 @@ function MatchBoardContent({
   id: string;
   tab: 'st' | 'nd' | 'rd';
 }) {
+  const { mutate: updateScore, isPending: isPendingUpdateScore } = useMutation({
+    mutationFn: (args: ['a' | 'b', number]) => match.updateScore(id, tab, ...args),
+    throwOnError: false,
+  });
+  const [isPendingPlayer, setPendingPlayer] = useState(false);
+  function updateServe(team: 'a' | 'b', idx: 0 | 1, checked: 'indeterminate' | boolean) {
+    const player = produce(data.set[tab].player, draft => {
+      draft.a[0].serve = false;
+      draft.a[1].serve = false;
+      draft.b[0].serve = false;
+      draft.b[1].serve = false;
+      draft[team][idx].serve = checked === 'indeterminate' ? false : checked;
+    });
+    setPendingPlayer(true);
+    return match.updatePlayer(id, tab, player).finally(() => setPendingPlayer(false));
+  }
+  function updateSwap(team: 'a' | 'b') {
+    const player = produce(data.set[tab].player, draft => {
+      draft[team].reverse();
+    });
+    setPendingPlayer(true);
+    return match.updatePlayer(id, tab, player).finally(() => setPendingPlayer(false));
+  }
   return (
     <TabsContent value={tab} className="grid grid-cols-2 gap-1 mt-0">
       <Card className="mt-2">
@@ -314,13 +338,21 @@ function MatchBoardContent({
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-4">
                   <div className="flex gap-1">
-                    <Button size="icon" onClick={() => match.updateScore(id, tab, 'a', -1)}>
+                    <Button
+                      size="icon"
+                      disabled={isPendingUpdateScore || data.set[tab].score.a === 0}
+                      onClick={() => updateScore(['a', -1])}
+                    >
                       <IcMinus />
                     </Button>
                     <div className="flex-1">
                       <p className="font-bold text-center text-4xl">{data.set[tab].score.a}</p>
                     </div>
-                    <Button size="icon" onClick={() => match.updateScore(id, tab, 'a', 1)}>
+                    <Button
+                      size="icon"
+                      disabled={isPendingUpdateScore}
+                      onClick={() => updateScore(['a', 1])}
+                    >
                       <IcPlus />
                     </Button>
                   </div>
@@ -334,19 +366,8 @@ function MatchBoardContent({
                           className="size-5"
                           id="player-a-0-name"
                           checked={data.set[tab].player.a[0].serve}
-                          onCheckedChange={checked => {
-                            match.updatePlayer(
-                              id,
-                              tab,
-                              produce(data, draft => {
-                                draft.set.st.player.a[0].serve =
-                                  checked === 'indeterminate' ? false : checked;
-                                draft.set.st.player.a[1].serve = false;
-                                draft.set.st.player.b[0].serve = false;
-                                draft.set.st.player.b[1].serve = false;
-                              }).set.st.player
-                            );
-                          }}
+                          disabled={isPendingPlayer}
+                          onCheckedChange={checked => updateServe('a', 0, checked)}
                         />
                       </div>
                     </div>
@@ -359,47 +380,33 @@ function MatchBoardContent({
                           className="size-5"
                           id="player-a-1-name"
                           checked={data.set[tab].player.a[1].serve}
-                          onCheckedChange={checked => {
-                            match.updatePlayer(
-                              id,
-                              tab,
-                              produce(data, draft => {
-                                draft.set.st.player.a[0].serve = false;
-                                draft.set.st.player.a[1].serve =
-                                  checked === 'indeterminate' ? false : checked;
-                                draft.set.st.player.b[0].serve = false;
-                                draft.set.st.player.b[1].serve = false;
-                              }).set.st.player
-                            );
-                          }}
+                          disabled={isPendingPlayer}
+                          onCheckedChange={checked => updateServe('a', 1, checked)}
                         />
                       </div>
                     </div>
-                    <Button
-                      className="w-full"
-                      onClick={() => {
-                        match.updatePlayer(
-                          id,
-                          tab,
-                          produce(data, draft => {
-                            draft.set.st.player.a.reverse();
-                          }).set.st.player
-                        );
-                      }}
-                    >
+                    <Button className="w-full" onClick={() => updateSwap('a')}>
                       Swap
                     </Button>
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div className="flex gap-1">
-                    <Button size="icon" onClick={() => match.updateScore(id, tab, 'b', -1)}>
+                    <Button
+                      size="icon"
+                      disabled={isPendingUpdateScore || data.set[tab].score.b === 0}
+                      onClick={() => updateScore(['b', -1])}
+                    >
                       <IcMinus />
                     </Button>
                     <div className="flex-1">
                       <p className="font-bold text-center text-4xl">{data.set[tab].score.b}</p>
                     </div>
-                    <Button size="icon" onClick={() => match.updateScore(id, tab, 'b', 1)}>
+                    <Button
+                      size="icon"
+                      disabled={isPendingUpdateScore}
+                      onClick={() => updateScore(['b', 1])}
+                    >
                       <IcPlus />
                     </Button>
                   </div>
@@ -410,19 +417,8 @@ function MatchBoardContent({
                           className="size-5"
                           id="player-b-0-name"
                           checked={data.set[tab].player.b[0].serve}
-                          onCheckedChange={checked => {
-                            match.updatePlayer(
-                              id,
-                              tab,
-                              produce(data, draft => {
-                                draft.set.st.player.a[0].serve = false;
-                                draft.set.st.player.a[1].serve = false;
-                                draft.set.st.player.b[0].serve =
-                                  checked === 'indeterminate' ? false : checked;
-                                draft.set.st.player.b[1].serve = false;
-                              }).set.st.player
-                            );
-                          }}
+                          disabled={isPendingPlayer}
+                          onCheckedChange={checked => updateServe('b', 0, checked)}
                         />
                       </div>
                       <Label htmlFor="player-b-0-name" className="text-xl">
@@ -435,37 +431,15 @@ function MatchBoardContent({
                           className="size-5"
                           id="player-b-1-name"
                           checked={data.set[tab].player.b[1].serve}
-                          onCheckedChange={checked => {
-                            match.updatePlayer(
-                              id,
-                              tab,
-                              produce(data, draft => {
-                                draft.set.st.player.a[0].serve = false;
-                                draft.set.st.player.a[1].serve = false;
-                                draft.set.st.player.b[0].serve = false;
-                                draft.set.st.player.b[1].serve =
-                                  checked === 'indeterminate' ? false : checked;
-                              }).set.st.player
-                            );
-                          }}
+                          disabled={isPendingPlayer}
+                          onCheckedChange={checked => updateServe('b', 1, checked)}
                         />
                       </div>
                       <Label htmlFor="player-b-1-name" className="text-xl">
                         {data.set[tab].player.b[1].name}
                       </Label>
                     </div>
-                    <Button
-                      className="w-full"
-                      onClick={() => {
-                        match.updatePlayer(
-                          id,
-                          tab,
-                          produce(data, draft => {
-                            draft.set.st.player.b.reverse();
-                          }).set.st.player
-                        );
-                      }}
-                    >
+                    <Button className="w-full" onClick={() => updateSwap('b')}>
                       Swap
                     </Button>
                   </div>
