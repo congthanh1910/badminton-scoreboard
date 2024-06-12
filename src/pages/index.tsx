@@ -109,6 +109,9 @@ export default function Page() {
               {!id ? <Dashboard /> : <MatchBoard id={id} />}
             </section>
           )}
+          {status === 'unauthorized' && (
+            <p className="font-bold text-xl text-center m-10">Login to continue</p>
+          )}
         </div>
       )}
       <AuthObserver />
@@ -141,7 +144,11 @@ function UserInfo() {
 function AuthButton() {
   const user = useAuth(state => state.user);
   const [isOpen, setOpen] = useState(false);
-
+  const [, setParams] = useSearchParams();
+  async function logout() {
+    await auth.logout();
+    setParams();
+  }
   return (
     <Dialog open={isOpen} onOpenChange={setOpen}>
       {!user ? (
@@ -149,7 +156,7 @@ function AuthButton() {
           <Button>Login</Button>
         </DialogTrigger>
       ) : (
-        <Button onClick={auth.logout}>Logout</Button>
+        <Button onClick={logout}>Logout</Button>
       )}
       <DialogContent className="max-w-lg">
         <DialogHeader>

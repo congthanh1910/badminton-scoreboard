@@ -2,10 +2,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Route, Routes, Link } from 'react-router-dom';
 import Page from '@/pages';
 import { Button } from '@/components/ui/button';
+import { useMediaQuery } from '@/hooks/use-media-query';
 
 const client = new QueryClient();
 
 export default function App() {
+  const isMediumDevice = useMediaQuery('only screen and (max-width : 769px)');
+  if (!isMediumDevice) return 'Not supported';
   return (
     <BrowserRouter>
       <QueryClientProvider client={client}>
