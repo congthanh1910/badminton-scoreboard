@@ -294,7 +294,7 @@ function MatchBoardContent({
     throwOnError: false,
   });
   const [isPendingPlayer, setPendingPlayer] = useState(false);
-  function updateServe(team: 'a' | 'b', idx: 0 | 1, checked: 'indeterminate' | boolean) {
+  async function updateServe(team: 'a' | 'b', idx: 0 | 1, checked: 'indeterminate' | boolean) {
     const player = produce(data.set[tab].player, draft => {
       draft.a[0].serve = false;
       draft.a[1].serve = false;
@@ -305,7 +305,7 @@ function MatchBoardContent({
     setPendingPlayer(true);
     return match.updatePlayer(id, tab, player).finally(() => setPendingPlayer(false));
   }
-  function updateSwap(team: 'a' | 'b') {
+  async function updateSwap(team: 'a' | 'b') {
     const player = produce(data.set[tab].player, draft => {
       draft[team].reverse();
     });
