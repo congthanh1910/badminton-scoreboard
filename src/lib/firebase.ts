@@ -130,17 +130,14 @@ export interface IMatch {
     rd: { name: IName; score: IScore; player: IPlayer };
   };
 }
-
 interface IPlayer {
   a: [{ name: string; serve: boolean }, { name: string; serve: boolean }];
   b: [{ name: string; serve: boolean }, { name: string; serve: boolean }];
 }
-
 interface IName {
   a: string;
   b: string;
 }
-
 interface IScore {
   a: number;
   b: number;

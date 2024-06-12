@@ -40,6 +40,8 @@ import { Label } from '@/components/ui/label';
 import { IcCopy } from '@/components/ui/ic-copy';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import toast from 'react-hot-toast';
+import { Separator } from '@/components/ui/separator';
+import { IcPen } from '@/components/icons/ic-pen';
 
 const useAuth = create<{
   user: Nullable<User>;
@@ -82,11 +84,14 @@ export default function Page() {
     <Provider>
       {status !== 'loading' && (
         <div className="container h-full flex flex-col">
-          <header className="flex justify-end items-center gap-2 pt-2 pb-0">
-            <UserInfo />
-            <AuthButton />
+          <header className="flex justify-between items-center pt-2 pb-0">
+            <img src="/favicon.svg" alt="app-icon" className="size-5" />
+            <div className="flex gap-2">
+              <UserInfo />
+              <AuthButton />
+            </div>
           </header>
-          <nav className="p-1">
+          <nav className="px-1 py-3">
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
@@ -264,23 +269,25 @@ function Dashboard() {
 
   const isPending = isPendingCreate || isPendingFind;
   return (
-    <div className="space-y-10">
+    <div className="space-y-10 my-4">
+      <Separator />
       <div className="flex justify-center">
         <Button disabled={isPending} onClick={() => create()}>
-          Create
+          New
         </Button>
       </div>
-      <div className="space-y-2">
-        <div className="px-4">
+      <Separator />
+      <div className="flex gap-2 px-2">
+        <div className="flex-1">
           <Input
-            className={cn('w-full')}
+            className="w-full"
             placeholder="Enter existing ID"
             disabled={isPending}
             value={value}
             onChange={event => setValue(event.target.value)}
           />
         </div>
-        <div className="flex justify-center">
+        <div>
           <Button disabled={isPending || !value} onClick={() => find(value)}>
             Find
           </Button>
@@ -332,42 +339,53 @@ function MatchBoardContent({
   });
   const [isPendingPlayer, setPendingPlayer] = useState(false);
   async function updateServe(team: 'a' | 'b', idx: 0 | 1, checked: 'indeterminate' | boolean) {
+    if (checked !== true) return;
     const player = produce(data.set[tab].player, draft => {
       draft.a[0].serve = false;
       draft.a[1].serve = false;
       draft.b[0].serve = false;
       draft.b[1].serve = false;
-      draft[team][idx].serve = checked === 'indeterminate' ? false : checked;
+      draft[team][idx].serve = true;
     });
     setPendingPlayer(true);
-    return match.updatePlayer(id, tab, player).finally(() => setPendingPlayer(false));
+    try {
+      await match.updatePlayer(id, tab, player);
+    } finally {
+      setPendingPlayer(false);
+    }
   }
   async function updateSwap(team: 'a' | 'b') {
     const player = produce(data.set[tab].player, draft => {
       draft[team].reverse();
     });
     setPendingPlayer(true);
-    return match.updatePlayer(id, tab, player).finally(() => setPendingPlayer(false));
+    try {
+      await match.updatePlayer(id, tab, player);
+    } finally {
+      setPendingPlayer(false);
+    }
   }
+  const isPending = isPendingUpdateScore || isPendingPlayer;
   return (
     <TabsContent value={tab} className="grid grid-cols-2 gap-1 mt-0">
       <Card className="mt-2">
         <div>
           <DialogNameForm id={id} data={data} tab={tab} team="a" />
-          <p className="text-center text-4xl font-bold">{data.set[tab].score.a}</p>
+          <p className="text-center text-5xl font-bold">{data.set[tab].score.a}</p>
           <DialogPlayerNameForm id={id} data={data} tab={tab} team="a" />
         </div>
       </Card>
       <Card className="mt-2">
         <div>
           <DialogNameForm id={id} data={data} tab={tab} team="b" />
-          <p className="text-center text-4xl font-bold">{data.set[tab].score.b}</p>
+          <p className="text-center text-5xl font-bold">{data.set[tab].score.b}</p>
           <DialogPlayerNameForm id={id} data={data} tab={tab} team="b" />
         </div>
       </Card>
       <Drawer>
-        <DrawerTrigger className="mt-2 col-span-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md text-sm font-medium">
-          Setting
+        <DrawerTrigger className="mt-2 col-span-2 inline-flex items-center justify-center h-10 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md text-sm font-medium">
+          <IcPen className="mr-2" />
+          Update
         </DrawerTrigger>
         <DrawerContent>
           <div className="mx-auto w-full max-w-sm">
@@ -377,7 +395,7 @@ function MatchBoardContent({
                   <div className="flex gap-1">
                     <Button
                       size="icon"
-                      disabled={isPendingUpdateScore || data.set[tab].score.a === 0}
+                      disabled={isPending || data.set[tab].score.a === 0}
                       onClick={() => updateScore(['a', -1])}
                     >
                       <IcMinus />
@@ -385,44 +403,42 @@ function MatchBoardContent({
                     <div className="flex-1">
                       <p className="font-bold text-center text-4xl">{data.set[tab].score.a}</p>
                     </div>
-                    <Button
-                      size="icon"
-                      disabled={isPendingUpdateScore}
-                      onClick={() => updateScore(['a', 1])}
-                    >
+                    <Button size="icon" disabled={isPending} onClick={() => updateScore(['a', 1])}>
                       <IcPlus />
                     </Button>
                   </div>
                   <div className="space-y-2">
-                    <div className="flex gap-2 items-center justify-end">
-                      <Label htmlFor="player-a-0-name" className="text-xl">
+                    <div className="flex gap-1 items-center justify-end">
+                      <Label
+                        htmlFor="player-a-0-name"
+                        className="text-xl overflow-hidden whitespace-nowrap text-ellipsis"
+                      >
                         {data.set[tab].player.a[0].name}
                       </Label>
-                      <div>
-                        <Checkbox
-                          className="size-5"
-                          id="player-a-0-name"
-                          checked={data.set[tab].player.a[0].serve}
-                          disabled={isPendingPlayer}
-                          onCheckedChange={checked => updateServe('a', 0, checked)}
-                        />
-                      </div>
+                      <Checkbox
+                        className="size-5"
+                        id="player-a-0-name"
+                        checked={data.set[tab].player.a[0].serve}
+                        disabled={isPending}
+                        onCheckedChange={checked => updateServe('a', 0, checked)}
+                      />
                     </div>
-                    <div className="flex gap-2 items-center justify-end">
-                      <Label htmlFor="player-a-1-name" className="text-xl">
+                    <div className="flex gap-1 items-center justify-end">
+                      <Label
+                        htmlFor="player-a-1-name"
+                        className="text-xl overflow-hidden whitespace-nowrap text-ellipsis"
+                      >
                         {data.set[tab].player.a[1].name}
                       </Label>
-                      <div>
-                        <Checkbox
-                          className="size-5"
-                          id="player-a-1-name"
-                          checked={data.set[tab].player.a[1].serve}
-                          disabled={isPendingPlayer}
-                          onCheckedChange={checked => updateServe('a', 1, checked)}
-                        />
-                      </div>
+                      <Checkbox
+                        className="size-5"
+                        id="player-a-1-name"
+                        checked={data.set[tab].player.a[1].serve}
+                        disabled={isPending}
+                        onCheckedChange={checked => updateServe('a', 1, checked)}
+                      />
                     </div>
-                    <Button className="w-full" onClick={() => updateSwap('a')}>
+                    <Button className="w-full" disabled={isPending} onClick={() => updateSwap('a')}>
                       Swap
                     </Button>
                   </div>
@@ -431,7 +447,7 @@ function MatchBoardContent({
                   <div className="flex gap-1">
                     <Button
                       size="icon"
-                      disabled={isPendingUpdateScore || data.set[tab].score.b === 0}
+                      disabled={isPending || data.set[tab].score.b === 0}
                       onClick={() => updateScore(['b', -1])}
                     >
                       <IcMinus />
@@ -439,44 +455,42 @@ function MatchBoardContent({
                     <div className="flex-1">
                       <p className="font-bold text-center text-4xl">{data.set[tab].score.b}</p>
                     </div>
-                    <Button
-                      size="icon"
-                      disabled={isPendingUpdateScore}
-                      onClick={() => updateScore(['b', 1])}
-                    >
+                    <Button size="icon" disabled={isPending} onClick={() => updateScore(['b', 1])}>
                       <IcPlus />
                     </Button>
                   </div>
                   <div className="space-y-2">
-                    <div className="flex gap-2 items-center justify-start">
-                      <div>
-                        <Checkbox
-                          className="size-5"
-                          id="player-b-0-name"
-                          checked={data.set[tab].player.b[0].serve}
-                          disabled={isPendingPlayer}
-                          onCheckedChange={checked => updateServe('b', 0, checked)}
-                        />
-                      </div>
-                      <Label htmlFor="player-b-0-name" className="text-xl">
+                    <div className="flex gap-1 items-center justify-start">
+                      <Checkbox
+                        className="size-5"
+                        id="player-b-0-name"
+                        checked={data.set[tab].player.b[0].serve}
+                        disabled={isPending}
+                        onCheckedChange={checked => updateServe('b', 0, checked)}
+                      />
+                      <Label
+                        htmlFor="player-b-0-name"
+                        className="text-xl overflow-hidden whitespace-nowrap text-ellipsis"
+                      >
                         {data.set[tab].player.b[0].name}
                       </Label>
                     </div>
-                    <div className="flex gap-2 items-center justify-start">
-                      <div>
-                        <Checkbox
-                          className="size-5"
-                          id="player-b-1-name"
-                          checked={data.set[tab].player.b[1].serve}
-                          disabled={isPendingPlayer}
-                          onCheckedChange={checked => updateServe('b', 1, checked)}
-                        />
-                      </div>
-                      <Label htmlFor="player-b-1-name" className="text-xl">
+                    <div className="flex gap-1 items-center justify-start">
+                      <Checkbox
+                        className="size-5"
+                        id="player-b-1-name"
+                        checked={data.set[tab].player.b[1].serve}
+                        disabled={isPending}
+                        onCheckedChange={checked => updateServe('b', 1, checked)}
+                      />
+                      <Label
+                        htmlFor="player-b-1-name"
+                        className="text-xl overflow-hidden whitespace-nowrap text-ellipsis"
+                      >
                         {data.set[tab].player.b[1].name}
                       </Label>
                     </div>
-                    <Button className="w-full" onClick={() => updateSwap('b')}>
+                    <Button className="w-full" disabled={isPending} onClick={() => updateSwap('b')}>
                       Swap
                     </Button>
                   </div>
@@ -488,10 +502,6 @@ function MatchBoardContent({
       </Drawer>
     </TabsContent>
   );
-}
-
-function StartServe({ active }: { active: boolean }) {
-  return <div className={cn('size-4 rounded-full', active && 'bg-green-500')} />;
 }
 
 function DialogNameForm({
@@ -508,7 +518,11 @@ function DialogNameForm({
   const [isOpen, setOpen] = useState(false);
   return (
     <Dialog open={isOpen} onOpenChange={setOpen}>
-      <DialogTrigger className="w-full text-lg">{data.set[tab].name[team]}</DialogTrigger>
+      <DialogTrigger className="w-full px-1">
+        <p className="text-xl whitespace-nowrap overflow-hidden text-ellipsis">
+          {data.set[tab].name[team]}
+        </p>
+      </DialogTrigger>
       <DialogContent>
         <NameForm
           id={id}
@@ -588,6 +602,10 @@ function DialogPlayerNameForm({
   team: 'a' | 'b';
 }) {
   const [isOpen, setOpen] = useState(false);
+  const isPlayerServe = [
+    data.set[tab].player[team][0].serve,
+    data.set[tab].player[team][1].serve,
+  ] as const;
   return (
     <Dialog open={isOpen} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -598,8 +616,12 @@ function DialogPlayerNameForm({
               team === 'b' && 'flex-row-reverse'
             )}
           >
-            <p>{data.set[tab].player[team][0].name}</p>
-            <StartServe active={data.set[tab].player[team][0].serve} />
+            <p className="whitespace-nowrap overflow-hidden text-ellipsis text-lg">
+              {data.set[tab].player[team][0].name}
+            </p>
+            <div>
+              <div className={cn('size-4 rounded-full', isPlayerServe[0] && 'bg-green-500')} />
+            </div>
           </div>
           <div
             className={cn(
@@ -607,8 +629,12 @@ function DialogPlayerNameForm({
               team === 'b' && 'flex-row-reverse'
             )}
           >
-            <p>{data.set[tab].player[team][1].name}</p>
-            <StartServe active={data.set[tab].player[team][1].serve} />
+            <p className="whitespace-nowrap overflow-hidden text-ellipsis text-lg">
+              {data.set[tab].player[team][1].name}
+            </p>
+            <div>
+              <div className={cn('size-4 rounded-full', isPlayerServe[1] && 'bg-green-500')} />
+            </div>
           </div>
         </div>
       </DialogTrigger>
