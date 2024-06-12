@@ -37,6 +37,9 @@ import { IcMinus } from '@/components/icons/ic-minus';
 import { IcPlus } from '@/components/icons/ic-plus';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { IcCopy } from '@/components/ui/ic-copy';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
+import toast from 'react-hot-toast';
 
 const useAuth = create<{
   user: Nullable<User>;
@@ -74,7 +77,7 @@ function useControl() {
 export default function Page() {
   const { id } = useControl();
   const status = useAuth(state => state.status);
-
+  const copy = useCopyToClipboard();
   return (
     <Provider>
       {status !== 'loading' && (
@@ -98,6 +101,13 @@ export default function Page() {
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
                       <BreadcrumbPage>Match {id}</BreadcrumbPage>
+                      <button
+                        onClick={() =>
+                          copy(id).then(() => toast.success('Copied', { id: 'copied' }))
+                        }
+                      >
+                        <IcCopy />
+                      </button>
                     </BreadcrumbItem>
                   </>
                 )}
@@ -239,18 +249,43 @@ const match = new Match();
 
 function Dashboard() {
   const { navigate } = useControl();
-  const { mutate, isPending } = useMutation({
+  const { mutate: create, isPending: isPendingCreate } = useMutation({
     mutationFn: () => match.create().then(snapshot => snapshot.id),
     throwOnError: false,
-    onSuccess(id) {
-      navigate(id);
-    },
+    onSuccess: navigate,
   });
+
+  const [value, setValue] = useState('');
+  const { mutate: find, isPending: isPendingFind } = useMutation({
+    mutationFn: (id: string) => match.get(id),
+    onSuccess: data => (!data ? toast.error('Not found') : navigate(data.id)),
+    onError: () => toast.error('Something went wrong'),
+  });
+
+  const isPending = isPendingCreate || isPendingFind;
   return (
-    <div className="flex justify-center">
-      <Button disabled={isPending} onClick={() => mutate()}>
-        Create
-      </Button>
+    <div className="space-y-10">
+      <div className="flex justify-center">
+        <Button disabled={isPending} onClick={() => create()}>
+          Create
+        </Button>
+      </div>
+      <div className="space-y-2">
+        <div className="px-4">
+          <Input
+            className={cn('w-full')}
+            placeholder="Enter existing ID"
+            disabled={isPending}
+            value={value}
+            onChange={event => setValue(event.target.value)}
+          />
+        </div>
+        <div className="flex justify-center">
+          <Button disabled={isPending || !value} onClick={() => find(value)}>
+            Find
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

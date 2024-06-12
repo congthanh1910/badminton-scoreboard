@@ -5,6 +5,7 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
   getFirestore,
   increment,
   onSnapshot,
@@ -64,13 +65,21 @@ export class Match {
       ],
     },
   };
+  private getDocRef(id: string) {
+    return doc(db, 'matches', id);
+  }
+  async get(id: string): Promise<Nullable<IMatch>> {
+    const snapshot = await getDoc(this.getDocRef(id));
+    if (!snapshot.exists()) return null;
+    return { id: snapshot.id, ...pick(snapshot.data(), this.fields) };
+  }
   create() {
     return addDoc(collection(db, 'matches'), {
       set: { st: this.value, nd: this.value, rd: this.value },
     });
   }
   async updateName(id: string, set: 'st' | 'nd' | 'rd', team: 'a' | 'b', name: string) {
-    return updateDoc(doc(db, 'matches', id), {
+    return updateDoc(this.getDocRef(id), {
       [`set.${set}.name.${team}`]: name,
     });
   }
@@ -81,7 +90,7 @@ export class Match {
     name1: string,
     name2: string
   ) {
-    return updateDoc(doc(db, 'matches', id), {
+    return updateDoc(this.getDocRef(id), {
       [`set.${set}.player.${team}`]: [
         { name: name1, serve: false },
         { name: name2, serve: false },
@@ -89,7 +98,7 @@ export class Match {
     });
   }
   async updateScore(id: string, set: 'st' | 'nd' | 'rd', team: 'a' | 'b', value: number) {
-    return updateDoc(doc(db, 'matches', id), {
+    return updateDoc(this.getDocRef(id), {
       [`set.${set}.score.${team}`]: increment(value),
     });
   }
@@ -101,12 +110,12 @@ export class Match {
       b: [{ name: string; serve: boolean }, { name: string; serve: boolean }];
     }
   ) {
-    return updateDoc(doc(db, 'matches', id), {
+    return updateDoc(this.getDocRef(id), {
       [`set.${set}.player`]: values,
     });
   }
   onListener(id: string, next: (data: IMatch) => void) {
-    return onSnapshot(doc(db, 'matches', id), doc => {
+    return onSnapshot(this.getDocRef(id), doc => {
       if (!doc.exists()) return;
       next({ id: doc.id, ...pick(doc.data(), this.fields) });
     });
