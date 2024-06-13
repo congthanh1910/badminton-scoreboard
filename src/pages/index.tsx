@@ -85,8 +85,6 @@ export default function Page() {
           <header className="flex justify-between items-center pt-2 pb-0">
             <img src="/favicon.svg" alt="app-icon" className="size-5" />
             <div className="flex gap-2">
-              {/* <UserInfo />
-              <AuthButton /> */}
               <MenuSheet />
             </div>
           </header>
@@ -289,12 +287,12 @@ function NewMatchForm() {
       })
     ),
     defaultValues: {
-      team_name_a: 'Nha-Danh',
-      team_name_b: 'Vinh-Kiet',
-      team_players_a_st: 'Nha Nguyen',
-      team_players_a_nd: 'Danh Nguyen',
-      team_players_b_st: 'Vinh Bui',
-      team_players_b_nd: 'Kiet Doan',
+      team_name_a: '',
+      team_name_b: '',
+      team_players_a_st: '',
+      team_players_a_nd: '',
+      team_players_b_st: '',
+      team_players_b_nd: '',
     },
   });
 
