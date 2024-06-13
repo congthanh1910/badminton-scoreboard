@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   type IMatch,
   type IMatchOmitId,
@@ -24,19 +24,15 @@ import { Nullable } from '@/utils/types';
 import { type User } from 'firebase/auth';
 import { Link, useSearchParams } from 'react-router-dom';
 import { IcHome } from '@/components/icons/ic-home';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Backdrop } from '@/components/ui/backdrop';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { Form, FormControl, FormField, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import get from 'lodash/get';
+import capitalize from 'lodash/capitalize';
 import { useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -52,6 +48,8 @@ import toast from 'react-hot-toast';
 import { Separator } from '@/components/ui/separator';
 import { IcPen } from '@/components/icons/ic-pen';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { IcMenu } from '@/components/icons/ic-menu';
 
 const useAuth = create<{
   user: Nullable<User>;
@@ -87,8 +85,9 @@ export default function Page() {
           <header className="flex justify-between items-center pt-2 pb-0">
             <img src="/favicon.svg" alt="app-icon" className="size-5" />
             <div className="flex gap-2">
-              <UserInfo />
-              <AuthButton />
+              {/* <UserInfo />
+              <AuthButton /> */}
+              <MenuSheet />
             </div>
           </header>
           <nav className="px-1 py-3">
@@ -148,42 +147,48 @@ function AuthObserver() {
   return null;
 }
 
-function UserInfo() {
-  const user = useAuth(state => state.user);
-  if (!user) return <p className="text-sm">Guest</p>;
-  const email = user.email;
-  if (!email) return <p className="text-sm">User {user.uid}</p>;
-  return <div>{get(email.split('@'), 0)}</div>;
-}
-
-function AuthButton() {
-  const user = useAuth(state => state.user);
-  const [isOpen, setOpen] = useState(false);
+function MenuSheet() {
   const [, setParams] = useSearchParams();
+  const user = useAuth(state => state.user);
+
+  const username = useMemo(() => {
+    if (!user) return 'Guest';
+    const email = user.email;
+    if (!email) return `User ${user.uid}`;
+    return capitalize(get(email.split('@'), 0));
+  }, [user]);
+
   async function logout() {
     await auth.logout();
     setParams();
   }
+
   return (
-    <Dialog open={isOpen} onOpenChange={setOpen}>
-      {!user ? (
-        <DialogTrigger asChild>
-          <Button>Login</Button>
-        </DialogTrigger>
-      ) : (
-        <Button onClick={logout}>Logout</Button>
-      )}
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Login</DialogTitle>
-        </DialogHeader>
-        <LoginForm onSubmitted={() => setOpen(false)} />
-      </DialogContent>
-    </Dialog>
+    <Sheet>
+      <SheetTrigger className="h-8 w-8 inline-flex items-center rounded-md justify-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2">
+        <IcMenu />
+      </SheetTrigger>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle>
+            Welcome <i>{username}</i>
+          </SheetTitle>
+        </SheetHeader>
+        <div className="mt-4">
+          {!user ? (
+            <LoginForm />
+          ) : (
+            <Button className="w-full" onClick={logout}>
+              Logout
+            </Button>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
-function LoginForm({ onSubmitted }: { onSubmitted: VoidFunction }) {
+function LoginForm() {
   const [error, setError] = useState('');
   const schema = z.object({
     email: z
@@ -202,7 +207,6 @@ function LoginForm({ onSubmitted }: { onSubmitted: VoidFunction }) {
   const onSubmit = form.handleSubmit(async payload => {
     try {
       await auth.login(payload.email, payload.password);
-      onSubmitted();
     } catch {
       setError('Something went wrong!');
     }
@@ -242,7 +246,7 @@ function LoginForm({ onSubmitted }: { onSubmitted: VoidFunction }) {
           )}
         />
         <Button type="submit" className="w-full" disabled={isSubmitting}>
-          Submit
+          Login
         </Button>
         <p className="text-destructive">{error}</p>
       </form>
@@ -519,6 +523,7 @@ function MatchBoardContent({
   const isPending = isPendingUpdateScore || isPendingPlayer;
   return (
     <TabsContent value={set} className="grid grid-cols-2 gap-1 mt-0">
+      <Backdrop open={isPending} />
       <Card className="mt-2">
         <div>
           <DialogNameForm id={id} data={data} set={set} team="a" />

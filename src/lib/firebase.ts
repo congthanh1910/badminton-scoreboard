@@ -138,8 +138,14 @@ export class Match {
           draft[set].team_players.a.nd.serve = false;
           draft[set].team_players.b.st.serve = false;
           draft[set].team_players.b.nd.serve = false;
-          draft[set].team_players[team].st.serve = !isEvenScore;
-          draft[set].team_players[team].nd.serve = isEvenScore;
+          if (team === 'a') {
+            draft[set].team_players.a.st.serve = !isEvenScore;
+            draft[set].team_players.a.nd.serve = isEvenScore;
+          }
+          if (team === 'b') {
+            draft[set].team_players.b.st.serve = isEvenScore;
+            draft[set].team_players.b.nd.serve = !isEvenScore;
+          }
         }
       });
       transaction.update(ref, payload);
