@@ -69,11 +69,11 @@ function useControl() {
   const [params, setParams] = useSearchParams();
   const key = 'm';
   const id = params.get(key);
-  function navigate(id: string) {
+  function openMatch(id: string) {
     params.set(key, id);
     setParams(params);
   }
-  return { id, key, navigate };
+  return { id, key, openMatch };
 }
 
 export default function Page() {
@@ -253,17 +253,17 @@ function LoginForm({ onSubmitted }: { onSubmitted: VoidFunction }) {
 const match = new Match();
 
 function Dashboard() {
-  const { navigate } = useControl();
+  const { openMatch } = useControl();
   const { mutate: create, isPending: isPendingCreate } = useMutation({
     mutationFn: () => match.create().then(snapshot => snapshot.id),
     throwOnError: false,
-    onSuccess: navigate,
+    onSuccess: openMatch,
   });
 
   const [value, setValue] = useState('');
   const { mutate: find, isPending: isPendingFind } = useMutation({
     mutationFn: (id: string) => match.get(id),
-    onSuccess: data => (!data ? toast.error('Not found', { id: 'not-found' }) : navigate(data.id)),
+    onSuccess: data => (!data ? toast.error('Not found', { id: 'not-found' }) : openMatch(data.id)),
     onError: () => toast.error('Something went wrong', { id: 'something-went-wrong' }),
   });
 
