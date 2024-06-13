@@ -171,7 +171,7 @@ export class Match {
       const data: IMatchOmitId = pick(snapshot.data(), this.fields);
       const payload = produce(data, draft => {
         draft[set].team_players[team].st.name = st;
-        draft[set].team_players[team].st.name = nd;
+        draft[set].team_players[team].nd.name = nd;
       });
       transaction.update(ref, payload);
     });
