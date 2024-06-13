@@ -17,6 +17,7 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
+  updatePassword,
 } from 'firebase/auth';
 import { Nullable } from '@/utils/types';
 import pick from 'lodash/pick';
@@ -40,6 +41,9 @@ export class Auth {
   }
   logout() {
     return signOut(auth);
+  }
+  updatePassword(newPassword: string) {
+    return updatePassword(auth.currentUser!, newPassword);
   }
   onStateChanged(on: (uid: Nullable<User>) => void) {
     return onAuthStateChanged(

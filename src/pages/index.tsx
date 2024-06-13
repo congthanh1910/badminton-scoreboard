@@ -148,7 +148,6 @@ function AuthObserver() {
 }
 
 function MenuSheet() {
-  const [, setParams] = useSearchParams();
   const user = useAuth(state => state.user);
 
   const username = useMemo(() => {
@@ -157,11 +156,6 @@ function MenuSheet() {
     if (!email) return `User ${user.uid}`;
     return capitalize(get(email.split('@'), 0));
   }, [user]);
-
-  async function logout() {
-    await auth.logout();
-    setParams();
-  }
 
   return (
     <Sheet>
@@ -174,17 +168,22 @@ function MenuSheet() {
             Welcome <i>{username}</i>
           </SheetTitle>
         </SheetHeader>
-        <div className="mt-4">
-          {!user ? (
-            <LoginForm />
-          ) : (
-            <Button className="w-full" onClick={logout}>
-              Logout
-            </Button>
-          )}
-        </div>
+        <div className="mt-6">{!user ? <LoginForm /> : <LogoutButton />}</div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function LogoutButton() {
+  const [, setParams] = useSearchParams();
+  async function logout() {
+    await auth.logout();
+    setParams();
+  }
+  return (
+    <Button className="w-full text-destructive" onClick={logout} variant="secondary">
+      Logout
+    </Button>
   );
 }
 
@@ -444,7 +443,7 @@ function FindMatchForm() {
         <Button className="w-full">Existing match</Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-4 flex gap-2">
-        <div className="flex-1">
+        <div className="flex-1 pl-1">
           <Input
             className="w-full"
             placeholder="Enter match ID"
