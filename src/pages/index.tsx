@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Auth, type IMatch, Match } from '@/lib/firebase';
-import { Provider } from 'jotai';
+import {
+  type IMatch,
+  type IMatchOmitId,
+  type ICreatePayload,
+  type ITeamName,
+  type ITeamScore,
+  type ITeamPlayer,
+  Auth,
+  Match,
+} from '@/lib/firebase';
+import { Provider, atom, useAtom, useSetAtom } from 'jotai';
 import { create } from 'zustand';
 import { produce } from 'immer';
 import { Button } from '@/components/ui/button';
@@ -29,7 +38,7 @@ import { Form, FormControl, FormField, FormLabel, FormMessage } from '@/componen
 import { Input } from '@/components/ui/input';
 import get from 'lodash/get';
 import { useMutation } from '@tanstack/react-query';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer';
 import { cn } from '@/utils/cn';
@@ -42,6 +51,7 @@ import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import toast from 'react-hot-toast';
 import { Separator } from '@/components/ui/separator';
 import { IcPen } from '@/components/icons/ic-pen';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const useAuth = create<{
   user: Nullable<User>;
@@ -242,50 +252,210 @@ function LoginForm({ onSubmitted }: { onSubmitted: VoidFunction }) {
 
 const match = new Match();
 
+const isPendingAtom = atom(false);
+
 function Dashboard() {
-  const [, setSearchParams] = useSearchParams();
-
-  const { mutate: create, isPending: isPendingCreate } = useMutation({
-    mutationFn: () => match.create().then(snapshot => snapshot.id),
-    throwOnError: false,
-    onSuccess: id => setSearchParams({ id }),
-  });
-
-  const [value, setValue] = useState('');
-  const { mutate: find, isPending: isPendingFind } = useMutation({
-    mutationFn: (id: string) => match.get(id).then(result => result?.id),
-    onSuccess: id =>
-      !id ? toast.error('Not found', { id: 'not-found' }) : setSearchParams({ id }),
-    onError: () => toast.error('Something went wrong', { id: 'something-went-wrong' }),
-  });
-
-  const isPending = isPendingCreate || isPendingFind;
   return (
     <div className="space-y-10 my-4">
       <Separator />
-      <div className="flex justify-center">
-        <Button disabled={isPending} onClick={() => create()}>
-          New
-        </Button>
-      </div>
+      <NewMatchForm />
       <Separator />
-      <div className="flex gap-2 px-2">
+      <FindMatchForm />
+    </div>
+  );
+}
+
+function NewMatchForm() {
+  const [, setSearchParams] = useSearchParams();
+  const setPending = useSetAtom(isPendingAtom);
+
+  const form = useForm<ICreatePayload>({
+    resolver: zodResolver(
+      z.object({
+        team_name_a: z.string().trim().min(1).max(50),
+        team_name_b: z.string().trim().min(1).max(50),
+        team_players_a_st: z.string().trim().min(1).max(50),
+        team_players_a_nd: z.string().trim().min(1).max(50),
+        team_players_b_st: z.string().trim().min(1).max(50),
+        team_players_b_nd: z.string().trim().min(1).max(50),
+      })
+    ),
+    defaultValues: {
+      team_name_a: 'Nha-Danh',
+      team_name_b: 'Vinh-Kiet',
+      team_players_a_st: 'Nha Nguyen',
+      team_players_a_nd: 'Danh Nguyen',
+      team_players_b_st: 'Vinh Bui',
+      team_players_b_nd: 'Kiet Doan',
+    },
+  });
+
+  const onSubmit = form.handleSubmit(async payload => {
+    setPending(true);
+    try {
+      const id = await match.create(payload).then(snapshot => snapshot.id);
+      setSearchParams({ id });
+    } catch {
+      toast.error('Something went wrong', { id: '500' });
+    } finally {
+      setPending(false);
+    }
+  });
+
+  const {
+    formState: { isSubmitting },
+  } = form;
+
+  return (
+    <Form {...form}>
+      <form onSubmit={onSubmit}>
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button className="w-full">New match</Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4 space-y-4">
+            <Card>
+              <CardHeader className="pb-4">
+                <CardDescription>Team A</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FormField
+                  control={form.control}
+                  name="team_name_a"
+                  render={({ field }) => (
+                    <div className="space-y-2">
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isSubmitting} />
+                      </FormControl>
+                      <FormMessage />
+                    </div>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="team_players_a_st"
+                  render={({ field }) => (
+                    <div className="space-y-2">
+                      <FormLabel>Player st</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isSubmitting} />
+                      </FormControl>
+                      <FormMessage />
+                    </div>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="team_players_a_nd"
+                  render={({ field }) => (
+                    <div className="space-y-2">
+                      <FormLabel>Player nd</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isSubmitting} />
+                      </FormControl>
+                      <FormMessage />
+                    </div>
+                  )}
+                />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-4">
+                <CardDescription>Team B</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FormField
+                  control={form.control}
+                  name="team_name_b"
+                  render={({ field }) => (
+                    <div className="space-y-2">
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isSubmitting} />
+                      </FormControl>
+                      <FormMessage />
+                    </div>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="team_players_b_st"
+                  render={({ field }) => (
+                    <div className="space-y-2">
+                      <FormLabel>Player st</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isSubmitting} />
+                      </FormControl>
+                      <FormMessage />
+                    </div>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="team_players_b_nd"
+                  render={({ field }) => (
+                    <div className="space-y-2">
+                      <FormLabel>Player nd</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isSubmitting} />
+                      </FormControl>
+                      <FormMessage />
+                    </div>
+                  )}
+                />
+              </CardContent>
+            </Card>
+            <div className="flex justify-end">
+              <Button type="submit" disabled={isSubmitting}>
+                Create
+              </Button>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </form>
+    </Form>
+  );
+}
+
+function FindMatchForm() {
+  const [, setSearchParams] = useSearchParams();
+  const [value, setValue] = useState('');
+  const [isPending, setPending] = useAtom(isPendingAtom);
+  async function findMatch() {
+    setPending(true);
+    try {
+      const result = await match.get(value);
+      if (!result) toast.error('Not found', { id: '404' });
+      else setSearchParams({ id: result.id });
+    } catch {
+      toast.error('Something went wrong', { id: '500' });
+    } finally {
+      setPending(false);
+    }
+  }
+  return (
+    <Collapsible>
+      <CollapsibleTrigger asChild>
+        <Button className="w-full">Existing match</Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="mt-4 flex gap-2">
         <div className="flex-1">
           <Input
             className="w-full"
-            placeholder="Enter existing ID"
+            placeholder="Enter match ID"
             disabled={isPending}
             value={value}
             onChange={event => setValue(event.target.value)}
           />
         </div>
         <div>
-          <Button disabled={isPending || !value} onClick={() => find(value)}>
+          <Button disabled={isPending || !value} onClick={findMatch}>
             Find
           </Button>
         </div>
-      </div>
-    </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
@@ -309,9 +479,9 @@ function MatchBoard({ id }: { id: string }) {
         <TabsTrigger value="nd">2nd</TabsTrigger>
         <TabsTrigger value="rd">3rd</TabsTrigger>
       </TabsList>
-      <MatchBoardContent {...props} tab="st" />
-      <MatchBoardContent {...props} tab="nd" />
-      <MatchBoardContent {...props} tab="rd" />
+      <MatchBoardContent {...props} set="st" />
+      <MatchBoardContent {...props} set="nd" />
+      <MatchBoardContent {...props} set="rd" />
     </Tabs>
   );
 }
@@ -319,59 +489,48 @@ function MatchBoard({ id }: { id: string }) {
 function MatchBoardContent({
   data,
   id,
-  tab,
+  set,
 }: {
   data: IMatch;
   id: string;
-  tab: 'st' | 'nd' | 'rd';
+  set: keyof IMatchOmitId;
 }) {
   const { mutate: updateScore, isPending: isPendingUpdateScore } = useMutation({
-    mutationFn: (args: ['a' | 'b', number]) => match.updateScore(id, tab, ...args),
+    mutationFn: (args: [keyof ITeamScore, number]) => match.updateScore(id, set, ...args),
     throwOnError: false,
   });
   const [isPendingPlayer, setPendingPlayer] = useState(false);
-  async function updateServe(team: 'a' | 'b', idx: 0 | 1, checked: 'indeterminate' | boolean) {
-    if (checked !== true) return;
-    const player = produce(data.set[tab].player, draft => {
-      draft.a[0].serve = false;
-      draft.a[1].serve = false;
-      draft.b[0].serve = false;
-      draft.b[1].serve = false;
-      draft[team][idx].serve = true;
-    });
+  async function updateServe(team: keyof ITeamPlayer, pos: keyof ITeamPlayer[keyof ITeamPlayer]) {
     setPendingPlayer(true);
     try {
-      await match.updatePlayer(id, tab, player);
+      await match.updatePlayerServe(id, set, team, pos);
     } finally {
       setPendingPlayer(false);
     }
   }
-  async function updateSwap(team: 'a' | 'b') {
-    const player = produce(data.set[tab].player, draft => {
-      draft[team].reverse();
-    });
+  async function updateSwap(team: keyof ITeamPlayer) {
     setPendingPlayer(true);
     try {
-      await match.updatePlayer(id, tab, player);
+      await match.updateSwapPlayer(id, set, team);
     } finally {
       setPendingPlayer(false);
     }
   }
   const isPending = isPendingUpdateScore || isPendingPlayer;
   return (
-    <TabsContent value={tab} className="grid grid-cols-2 gap-1 mt-0">
+    <TabsContent value={set} className="grid grid-cols-2 gap-1 mt-0">
       <Card className="mt-2">
         <div>
-          <DialogNameForm id={id} data={data} tab={tab} team="a" />
-          <p className="text-center text-5xl font-bold">{data.set[tab].score.a}</p>
-          <DialogPlayerNameForm id={id} data={data} tab={tab} team="a" />
+          <DialogNameForm id={id} data={data} set={set} team="a" />
+          <p className="text-center text-5xl font-bold">{data[set].team_score.a}</p>
+          <DialogPlayerNameForm id={id} data={data} set={set} team="a" />
         </div>
       </Card>
       <Card className="mt-2">
         <div>
-          <DialogNameForm id={id} data={data} tab={tab} team="b" />
-          <p className="text-center text-5xl font-bold">{data.set[tab].score.b}</p>
-          <DialogPlayerNameForm id={id} data={data} tab={tab} team="b" />
+          <DialogNameForm id={id} data={data} set={set} team="b" />
+          <p className="text-center text-5xl font-bold">{data[set].team_score.b}</p>
+          <DialogPlayerNameForm id={id} data={data} set={set} team="b" />
         </div>
       </Card>
       <Drawer>
@@ -387,13 +546,13 @@ function MatchBoardContent({
                   <div className="flex gap-1">
                     <Button
                       size="icon"
-                      disabled={isPending || data.set[tab].score.a === 0}
+                      disabled={isPending || data[set].team_score.a === 0}
                       onClick={() => updateScore(['a', -1])}
                     >
                       <IcMinus />
                     </Button>
                     <div className="flex-1">
-                      <p className="font-bold text-center text-4xl">{data.set[tab].score.a}</p>
+                      <p className="font-bold text-center text-4xl">{data[set].team_score.a}</p>
                     </div>
                     <Button size="icon" disabled={isPending} onClick={() => updateScore(['a', 1])}>
                       <IcPlus />
@@ -402,32 +561,36 @@ function MatchBoardContent({
                   <div className="space-y-2">
                     <div className="flex gap-1 items-center justify-end">
                       <Label
-                        htmlFor="player-a-0-name"
+                        htmlFor="player-a-st-name"
                         className="text-xl overflow-hidden whitespace-nowrap text-ellipsis"
                       >
-                        {data.set[tab].player.a[0].name}
+                        {data[set].team_players.a.st.name}
                       </Label>
                       <Checkbox
                         className="size-5"
-                        id="player-a-0-name"
-                        checked={data.set[tab].player.a[0].serve}
+                        id="player-a-st-name"
+                        checked={data[set].team_players.a.st.serve}
                         disabled={isPending}
-                        onCheckedChange={checked => updateServe('a', 0, checked)}
+                        onCheckedChange={checked =>
+                          checked !== 'indeterminate' && checked && updateServe('a', 'st')
+                        }
                       />
                     </div>
                     <div className="flex gap-1 items-center justify-end">
                       <Label
-                        htmlFor="player-a-1-name"
+                        htmlFor="player-a-nd-name"
                         className="text-xl overflow-hidden whitespace-nowrap text-ellipsis"
                       >
-                        {data.set[tab].player.a[1].name}
+                        {data[set].team_players.a.nd.name}
                       </Label>
                       <Checkbox
                         className="size-5"
-                        id="player-a-1-name"
-                        checked={data.set[tab].player.a[1].serve}
+                        id="player-a-nd-name"
+                        checked={data[set].team_players.a.nd.serve}
                         disabled={isPending}
-                        onCheckedChange={checked => updateServe('a', 1, checked)}
+                        onCheckedChange={checked =>
+                          checked !== 'indeterminate' && checked && updateServe('a', 'nd')
+                        }
                       />
                     </div>
                     <Button className="w-full" disabled={isPending} onClick={() => updateSwap('a')}>
@@ -439,13 +602,13 @@ function MatchBoardContent({
                   <div className="flex gap-1">
                     <Button
                       size="icon"
-                      disabled={isPending || data.set[tab].score.b === 0}
+                      disabled={isPending || data[set].team_score.b === 0}
                       onClick={() => updateScore(['b', -1])}
                     >
                       <IcMinus />
                     </Button>
                     <div className="flex-1">
-                      <p className="font-bold text-center text-4xl">{data.set[tab].score.b}</p>
+                      <p className="font-bold text-center text-4xl">{data[set].team_score.b}</p>
                     </div>
                     <Button size="icon" disabled={isPending} onClick={() => updateScore(['b', 1])}>
                       <IcPlus />
@@ -455,31 +618,35 @@ function MatchBoardContent({
                     <div className="flex gap-1 items-center justify-start">
                       <Checkbox
                         className="size-5"
-                        id="player-b-0-name"
-                        checked={data.set[tab].player.b[0].serve}
+                        id="player-b-st-name"
+                        checked={data[set].team_players.b.st.serve}
                         disabled={isPending}
-                        onCheckedChange={checked => updateServe('b', 0, checked)}
+                        onCheckedChange={checked =>
+                          checked !== 'indeterminate' && checked && updateServe('b', 'st')
+                        }
                       />
                       <Label
-                        htmlFor="player-b-0-name"
+                        htmlFor="player-b-st-name"
                         className="text-xl overflow-hidden whitespace-nowrap text-ellipsis"
                       >
-                        {data.set[tab].player.b[0].name}
+                        {data[set].team_players.b.st.name}
                       </Label>
                     </div>
                     <div className="flex gap-1 items-center justify-start">
                       <Checkbox
                         className="size-5"
                         id="player-b-1-name"
-                        checked={data.set[tab].player.b[1].serve}
+                        checked={data[set].team_players.b.nd.serve}
                         disabled={isPending}
-                        onCheckedChange={checked => updateServe('b', 1, checked)}
+                        onCheckedChange={checked =>
+                          checked !== 'indeterminate' && checked && updateServe('b', 'nd')
+                        }
                       />
                       <Label
                         htmlFor="player-b-1-name"
                         className="text-xl overflow-hidden whitespace-nowrap text-ellipsis"
                       >
-                        {data.set[tab].player.b[1].name}
+                        {data[set].team_players.b.nd.name}
                       </Label>
                     </div>
                     <Button className="w-full" disabled={isPending} onClick={() => updateSwap('b')}>
@@ -499,28 +666,28 @@ function MatchBoardContent({
 function DialogNameForm({
   id,
   data,
-  tab,
+  set,
   team,
 }: {
   id: string;
   data: IMatch;
-  tab: 'st' | 'nd' | 'rd';
-  team: 'a' | 'b';
+  set: keyof IMatchOmitId;
+  team: keyof ITeamName;
 }) {
   const [isOpen, setOpen] = useState(false);
   return (
     <Dialog open={isOpen} onOpenChange={setOpen}>
       <DialogTrigger className="w-full px-1">
         <p className="text-xl whitespace-nowrap overflow-hidden text-ellipsis">
-          {data.set[tab].name[team]}
+          {data[set].team_name[team]}
         </p>
       </DialogTrigger>
       <DialogContent>
         <NameForm
           id={id}
-          set={tab}
+          set={set}
           team={team}
-          name={data.set[tab].name[team]}
+          name={data[set].team_name[team]}
           onSubmitted={() => setOpen(false)}
         />
       </DialogContent>
@@ -536,18 +703,18 @@ function NameForm({
   onSubmitted,
 }: {
   id: string;
-  set: 'st' | 'nd' | 'rd';
-  team: 'a' | 'b';
+  set: keyof IMatchOmitId;
+  team: keyof ITeamName;
   name: string;
   onSubmitted: VoidFunction;
 }) {
-  const schema = z.object({ name: z.string().min(1) });
+  const schema = z.object({ name: z.string().min(1).max(50) });
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: { name },
   });
   const onSubmit = form.handleSubmit(async payload => {
-    await match.updateName(id, set, team, payload.name);
+    await match.updateTeamName(id, set, team, payload.name);
     form.reset(payload);
     onSubmitted();
   });
@@ -585,19 +752,15 @@ function NameForm({
 function DialogPlayerNameForm({
   id,
   data,
-  tab,
+  set,
   team,
 }: {
   id: string;
   data: IMatch;
-  tab: 'st' | 'nd' | 'rd';
-  team: 'a' | 'b';
+  set: keyof IMatchOmitId;
+  team: keyof ITeamPlayer;
 }) {
   const [isOpen, setOpen] = useState(false);
-  const isPlayerServe = [
-    data.set[tab].player[team][0].serve,
-    data.set[tab].player[team][1].serve,
-  ] as const;
   return (
     <Dialog open={isOpen} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -609,10 +772,15 @@ function DialogPlayerNameForm({
             )}
           >
             <p className="whitespace-nowrap overflow-hidden text-ellipsis text-lg">
-              {data.set[tab].player[team][0].name}
+              {data[set].team_players[team].st.name}
             </p>
             <div>
-              <div className={cn('size-4 rounded-full', isPlayerServe[0] && 'bg-green-500')} />
+              <div
+                className={cn(
+                  'size-4 rounded-full',
+                  data[set].team_players[team].st.serve && 'bg-green-500'
+                )}
+              />
             </div>
           </div>
           <div
@@ -622,10 +790,15 @@ function DialogPlayerNameForm({
             )}
           >
             <p className="whitespace-nowrap overflow-hidden text-ellipsis text-lg">
-              {data.set[tab].player[team][1].name}
+              {data[set].team_players[team].nd.name}
             </p>
             <div>
-              <div className={cn('size-4 rounded-full', isPlayerServe[1] && 'bg-green-500')} />
+              <div
+                className={cn(
+                  'size-4 rounded-full',
+                  data[set].team_players[team].nd.serve && 'bg-green-500'
+                )}
+              />
             </div>
           </div>
         </div>
@@ -633,10 +806,10 @@ function DialogPlayerNameForm({
       <DialogContent>
         <PlayerNameForm
           id={id}
-          set={tab}
+          set={set}
           team={team}
-          name1={data.set[tab].player[team][0].name}
-          name2={data.set[tab].player[team][1].name}
+          st={data[set].team_players[team].st.name}
+          nd={data[set].team_players[team].nd.name}
           onSubmitted={() => setOpen(false)}
         />
       </DialogContent>
@@ -648,24 +821,24 @@ function PlayerNameForm({
   id,
   set,
   team,
-  name1,
-  name2,
+  st,
+  nd,
   onSubmitted,
 }: {
   id: string;
-  set: 'st' | 'nd' | 'rd';
-  team: 'a' | 'b';
-  name1: string;
-  name2: string;
+  set: keyof IMatchOmitId;
+  team: keyof ITeamPlayer;
+  st: string;
+  nd: string;
   onSubmitted: VoidFunction;
 }) {
-  const schema = z.object({ name1: z.string().min(1), name2: z.string().min(1) });
+  const schema = z.object({ st: z.string().min(1).max(50), nd: z.string().min(1).max(50) });
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { name1, name2 },
+    defaultValues: { st, nd },
   });
   const onSubmit = form.handleSubmit(async payload => {
-    await match.updatePlayerName(id, set, team, payload.name1, payload.name2);
+    await match.updatePlayerName(id, set, team, payload.st, payload.nd);
     form.reset(payload);
     onSubmitted();
   });
@@ -680,7 +853,7 @@ function PlayerNameForm({
         <div className="space-y-3">
           <FormField
             control={form.control}
-            name="name1"
+            name="st"
             render={({ field }) => (
               <div className="space-y-1">
                 <FormLabel>Name player 1</FormLabel>
@@ -693,7 +866,7 @@ function PlayerNameForm({
           />
           <FormField
             control={form.control}
-            name="name2"
+            name="nd"
             render={({ field }) => (
               <div className="space-y-1">
                 <FormLabel>Name player 2</FormLabel>

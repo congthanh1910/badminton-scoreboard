@@ -7,8 +7,8 @@ import {
   doc,
   getDoc,
   getFirestore,
-  increment,
   onSnapshot,
+  runTransaction,
   updateDoc,
 } from 'firebase/firestore';
 import {
@@ -20,6 +20,7 @@ import {
 } from 'firebase/auth';
 import { Nullable } from '@/utils/types';
 import pick from 'lodash/pick';
+import { produce } from 'immer';
 
 const app = initializeApp({
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -50,72 +51,159 @@ export class Auth {
 }
 
 export class Match {
-  private fields = ['set'] as const;
-  private value = {
-    name: { a: 'A', b: 'B' },
-    score: { a: 0, b: 0 },
-    player: {
-      a: [
-        { name: 'player a 1', serve: false },
-        { name: 'player a 2', serve: false },
-      ],
-      b: [
-        { name: 'player b 1', serve: false },
-        { name: 'player b 2', serve: false },
-      ],
-    },
-  };
-  private getDocRef(id: string) {
-    return doc(db, 'matches', id);
+  private fields = ['st', 'nd', 'rd'] as const;
+  private collectionId = 'matches';
+  private document(documentId: string) {
+    return doc(db, this.collectionId, documentId);
   }
-  async get(id: string): Promise<Nullable<IMatch>> {
-    const snapshot = await getDoc(this.getDocRef(id));
+  private collection() {
+    return collection(db, this.collectionId);
+  }
+  async get(documentId: string): Promise<Nullable<IMatch>> {
+    const snapshot = await getDoc(this.document(documentId));
     if (!snapshot.exists()) return null;
     return { id: snapshot.id, ...pick(snapshot.data(), this.fields) };
   }
-  create() {
-    return addDoc(collection(db, 'matches'), {
-      set: { st: this.value, nd: this.value, rd: this.value },
-    });
+  create(payload: ICreatePayload) {
+    const score = { a: 0, b: 0 };
+    const st = {
+      team_name: { a: payload.team_name_a, b: payload.team_name_b },
+      team_score: score,
+      team_players: {
+        a: {
+          st: { name: payload.team_players_a_st, serve: false },
+          nd: { name: payload.team_players_a_nd, serve: false },
+        },
+        b: {
+          st: { name: payload.team_players_b_st, serve: false },
+          nd: { name: payload.team_players_b_nd, serve: false },
+        },
+      },
+    };
+    const nd = {
+      team_name: { a: payload.team_name_b, b: payload.team_name_a },
+      team_score: score,
+      team_players: {
+        a: {
+          st: { name: payload.team_players_b_st, serve: false },
+          nd: { name: payload.team_players_b_nd, serve: false },
+        },
+        b: {
+          st: { name: payload.team_players_a_st, serve: false },
+          nd: { name: payload.team_players_a_nd, serve: false },
+        },
+      },
+    };
+    return addDoc(this.collection(), { st: st, nd: nd, rd: st } satisfies IMatchOmitId);
   }
-  async updateName(id: string, set: 'st' | 'nd' | 'rd', team: 'a' | 'b', name: string) {
-    return updateDoc(this.getDocRef(id), {
-      [`set.${set}.name.${team}`]: name,
+  async updateTeamName(
+    documentId: string,
+    set: keyof IMatchOmitId,
+    team: keyof ITeamName,
+    name: string
+  ) {
+    await updateDoc(this.document(documentId), { [`${set}.team_name.${team}`]: name });
+  }
+  swapPlayers(st: IPlayer, nd: IPlayer) {
+    return { st: { ...nd }, nd: { ...st } };
+  }
+  async updateScore(
+    documentId: string,
+    set: keyof IMatchOmitId,
+    team: keyof ITeamScore,
+    value: number
+  ) {
+    await runTransaction(db, async transaction => {
+      const ref = this.document(documentId);
+      const snapshot = await transaction.get(ref);
+      if (!snapshot.exists()) throw new Error('Document does not exist!');
+      const data: IMatchOmitId = pick(snapshot.data(), this.fields);
+      const payload = produce(data, draft => {
+        const score = draft[set].team_score[team] + value;
+        draft[set].team_score[team] = score;
+        const isServing = [
+          draft[set].team_players[team].st.serve,
+          draft[set].team_players[team].nd.serve,
+        ].some(serve => serve);
+        if (isServing) {
+          const players = this.swapPlayers(
+            draft[set].team_players[team].st,
+            draft[set].team_players[team].nd
+          );
+          draft[set].team_players[team].st = players.st;
+          draft[set].team_players[team].nd = players.nd;
+        } else {
+          const isEvenScore = score % 2 === 0;
+          draft[set].team_players.a.st.serve = false;
+          draft[set].team_players.a.nd.serve = false;
+          draft[set].team_players.b.st.serve = false;
+          draft[set].team_players.b.nd.serve = false;
+          draft[set].team_players[team].st.serve = !isEvenScore;
+          draft[set].team_players[team].nd.serve = isEvenScore;
+        }
+      });
+      transaction.update(ref, payload);
     });
   }
   async updatePlayerName(
-    id: string,
-    set: 'st' | 'nd' | 'rd',
-    team: 'a' | 'b',
-    name1: string,
-    name2: string
+    documentId: string,
+    set: keyof IMatchOmitId,
+    team: keyof ITeamScore,
+    st: string,
+    nd: string
   ) {
-    return updateDoc(this.getDocRef(id), {
-      [`set.${set}.player.${team}`]: [
-        { name: name1, serve: false },
-        { name: name2, serve: false },
-      ],
+    await runTransaction(db, async transaction => {
+      const ref = this.document(documentId);
+      const snapshot = await transaction.get(ref);
+      if (!snapshot.exists()) throw new Error('Document does not exist!');
+      const data: IMatchOmitId = pick(snapshot.data(), this.fields);
+      const payload = produce(data, draft => {
+        draft[set].team_players[team].st.name = st;
+        draft[set].team_players[team].st.name = nd;
+      });
+      transaction.update(ref, payload);
     });
   }
-  async updateScore(id: string, set: 'st' | 'nd' | 'rd', team: 'a' | 'b', value: number) {
-    return updateDoc(this.getDocRef(id), {
-      [`set.${set}.score.${team}`]: increment(value),
-    });
-  }
-  async updatePlayer(
-    id: string,
-    set: 'st' | 'nd' | 'rd',
-    values: {
-      a: [{ name: string; serve: boolean }, { name: string; serve: boolean }];
-      b: [{ name: string; serve: boolean }, { name: string; serve: boolean }];
-    }
+  async updatePlayerServe(
+    documentId: string,
+    set: keyof IMatchOmitId,
+    team: keyof ITeamPlayer,
+    pos: keyof ITeamPlayer[keyof ITeamPlayer]
   ) {
-    return updateDoc(this.getDocRef(id), {
-      [`set.${set}.player`]: values,
+    await runTransaction(db, async transaction => {
+      const ref = this.document(documentId);
+      const snapshot = await transaction.get(ref);
+      if (!snapshot.exists()) throw new Error('Document does not exist!');
+      const data: IMatchOmitId = pick(snapshot.data(), this.fields);
+      const payload = produce(data, draft => {
+        draft[set].team_players.a.st.serve = false;
+        draft[set].team_players.a.nd.serve = false;
+        draft[set].team_players.b.st.serve = false;
+        draft[set].team_players.b.nd.serve = false;
+        draft[set].team_players[team][pos].serve = true;
+      });
+      transaction.update(ref, payload);
     });
   }
-  onListener(id: string, next: (data: IMatch) => void) {
-    return onSnapshot(this.getDocRef(id), doc => {
+  async updateSwapPlayer(documentId: string, set: keyof IMatchOmitId, team: keyof ITeamPlayer) {
+    await runTransaction(db, async transaction => {
+      const ref = this.document(documentId);
+      const snapshot = await transaction.get(ref);
+      if (!snapshot.exists()) throw new Error('Document does not exist!');
+      const data: IMatchOmitId = pick(snapshot.data(), this.fields);
+      const payload = produce(data, draft => {
+        const players = this.swapPlayers(
+          draft[set].team_players[team].st,
+          draft[set].team_players[team].nd
+        );
+        draft[set].team_players[team].st = players.st;
+        draft[set].team_players[team].nd = players.nd;
+      });
+      transaction.update(ref, payload);
+    });
+  }
+  onListener(documentId: string, next: (data: IMatch) => void) {
+    return onSnapshot(this.document(documentId), doc => {
       if (!doc.exists()) return;
       next({ id: doc.id, ...pick(doc.data(), this.fields) });
     });
@@ -124,21 +212,33 @@ export class Match {
 
 export interface IMatch {
   id: string;
-  set: {
-    st: { name: IName; score: IScore; player: IPlayer };
-    nd: { name: IName; score: IScore; player: IPlayer };
-    rd: { name: IName; score: IScore; player: IPlayer };
-  };
+  st: { team_name: ITeamName; team_score: ITeamScore; team_players: ITeamPlayer };
+  nd: { team_name: ITeamName; team_score: ITeamScore; team_players: ITeamPlayer };
+  rd: { team_name: ITeamName; team_score: ITeamScore; team_players: ITeamPlayer };
 }
-interface IPlayer {
-  a: [{ name: string; serve: boolean }, { name: string; serve: boolean }];
-  b: [{ name: string; serve: boolean }, { name: string; serve: boolean }];
-}
-interface IName {
+export type IMatchOmitId = Omit<IMatch, 'id'>;
+export interface ITeamName {
   a: string;
   b: string;
 }
-interface IScore {
+export interface ITeamScore {
   a: number;
   b: number;
+}
+export interface ITeamPlayer {
+  a: { st: IPlayer; nd: IPlayer };
+  b: { st: IPlayer; nd: IPlayer };
+}
+
+interface IPlayer {
+  name: string;
+  serve: boolean;
+}
+export interface ICreatePayload {
+  team_name_a: string;
+  team_name_b: string;
+  team_players_a_st: string;
+  team_players_a_nd: string;
+  team_players_b_st: string;
+  team_players_b_nd: string;
 }
