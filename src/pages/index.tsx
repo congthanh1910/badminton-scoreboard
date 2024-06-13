@@ -159,8 +159,13 @@ function MenuSheet() {
 
   return (
     <Sheet>
-      <SheetTrigger className="h-8 w-8 inline-flex items-center rounded-md justify-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2">
-        <IcMenu />
+      <SheetTrigger
+        className={cn(
+          'inline-flex items-center justify-center focus-visible:outline-none',
+          !user ? 'underline' : 'size-8'
+        )}
+      >
+        {!user ? <span>Login</span> : <IcMenu />}
       </SheetTrigger>
       <SheetContent onOpenAutoFocus={event => event.preventDefault()}>
         <SheetHeader>
