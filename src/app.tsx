@@ -23,7 +23,7 @@ export default function App() {
 
 function NotFound() {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-4">
+    <div className="flex h-dvh flex-col items-center justify-center gap-4">
       <div className="text-center">
         <h2 className="text-9xl font-bold">404</h2>
         <h3 className="text-2xl">There’s been a glitch…</h3>
