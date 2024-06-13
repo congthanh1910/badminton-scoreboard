@@ -186,7 +186,7 @@ function LoginForm({ onSubmitted }: { onSubmitted: VoidFunction }) {
   });
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { email: 'demo@abc.xyz', password: '1234567890' },
+    defaultValues: { email: 'auto@xyz.abc', password: '$UKnOk#(vDA@MVR2Qr)ceuWoEO*u$(oq' },
   });
 
   const onSubmit = form.handleSubmit(async payload => {
