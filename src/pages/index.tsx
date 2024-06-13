@@ -65,19 +65,9 @@ const useAuth = create<{
     ),
 }));
 
-function useControl() {
-  const [params, setParams] = useSearchParams();
-  const key = 'm';
-  const id = params.get(key);
-  function openMatch(id: string) {
-    params.set(key, id);
-    setParams(params);
-  }
-  return { id, key, openMatch };
-}
-
 export default function Page() {
-  const { id } = useControl();
+  const [searchParams] = useSearchParams();
+  const id = searchParams.get('id');
   const status = useAuth(state => state.status);
   const copy = useCopyToClipboard();
   return (
@@ -253,17 +243,19 @@ function LoginForm({ onSubmitted }: { onSubmitted: VoidFunction }) {
 const match = new Match();
 
 function Dashboard() {
-  const { openMatch } = useControl();
+  const [, setSearchParams] = useSearchParams();
+
   const { mutate: create, isPending: isPendingCreate } = useMutation({
     mutationFn: () => match.create().then(snapshot => snapshot.id),
     throwOnError: false,
-    onSuccess: openMatch,
+    onSuccess: id => setSearchParams({ id }),
   });
 
   const [value, setValue] = useState('');
   const { mutate: find, isPending: isPendingFind } = useMutation({
-    mutationFn: (id: string) => match.get(id),
-    onSuccess: data => (!data ? toast.error('Not found', { id: 'not-found' }) : openMatch(data.id)),
+    mutationFn: (id: string) => match.get(id).then(result => result?.id),
+    onSuccess: id =>
+      !id ? toast.error('Not found', { id: 'not-found' }) : setSearchParams({ id }),
     onError: () => toast.error('Something went wrong', { id: 'something-went-wrong' }),
   });
 
