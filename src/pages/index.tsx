@@ -324,12 +324,12 @@ function NewMatchForm() {
               <CardHeader className="pb-4">
                 <CardDescription>Team A</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-2">
                 <FormField
                   control={form.control}
                   name="team_name_a"
                   render={({ field }) => (
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <FormLabel>Name</FormLabel>
                       <FormControl>
                         <Input {...field} disabled={isSubmitting} />
@@ -342,7 +342,7 @@ function NewMatchForm() {
                   control={form.control}
                   name="team_players_a_st"
                   render={({ field }) => (
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <FormLabel>Player st</FormLabel>
                       <FormControl>
                         <Input {...field} disabled={isSubmitting} />
@@ -355,7 +355,7 @@ function NewMatchForm() {
                   control={form.control}
                   name="team_players_a_nd"
                   render={({ field }) => (
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <FormLabel>Player nd</FormLabel>
                       <FormControl>
                         <Input {...field} disabled={isSubmitting} />
@@ -370,12 +370,12 @@ function NewMatchForm() {
               <CardHeader className="pb-4">
                 <CardDescription>Team B</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-2">
                 <FormField
                   control={form.control}
                   name="team_name_b"
                   render={({ field }) => (
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <FormLabel>Name</FormLabel>
                       <FormControl>
                         <Input {...field} disabled={isSubmitting} />
@@ -388,7 +388,7 @@ function NewMatchForm() {
                   control={form.control}
                   name="team_players_b_st"
                   render={({ field }) => (
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <FormLabel>Player st</FormLabel>
                       <FormControl>
                         <Input {...field} disabled={isSubmitting} />
@@ -401,7 +401,7 @@ function NewMatchForm() {
                   control={form.control}
                   name="team_players_b_nd"
                   render={({ field }) => (
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <FormLabel>Player nd</FormLabel>
                       <FormControl>
                         <Input {...field} disabled={isSubmitting} />
@@ -501,8 +501,24 @@ function MatchBoardContent({
   id: string;
   set: keyof IMatchOmitId;
 }) {
+  function isPrevent() {
+    const hasServe = [
+      data[set].team_players.a.st.serve,
+      data[set].team_players.a.nd.serve,
+      data[set].team_players.b.st.serve,
+      data[set].team_players.b.nd.serve,
+    ].some(serve => serve);
+    if (!hasServe) {
+      toast.error('Serve starting position require', { id: 'serve-not-initialized' });
+      return true;
+    }
+    return false;
+  }
   const { mutate: updateScore, isPending: isPendingUpdateScore } = useMutation({
-    mutationFn: (args: [keyof ITeamScore, number]) => match.updateScore(id, set, ...args),
+    mutationFn: async (args: [keyof ITeamScore, number]) => {
+      if (isPrevent()) return;
+      await match.updateScore(id, set, ...args);
+    },
     throwOnError: false,
   });
   const [isPendingPlayer, setPendingPlayer] = useState(false);
@@ -515,6 +531,7 @@ function MatchBoardContent({
     }
   }
   async function updateSwap(team: keyof ITeamPlayer) {
+    if (isPrevent()) return;
     setPendingPlayer(true);
     try {
       await match.updateSwapPlayer(id, set, team);
