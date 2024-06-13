@@ -208,8 +208,14 @@ export class Match {
           draft[set].team_players[team].st,
           draft[set].team_players[team].nd
         );
-        draft[set].team_players[team].st = players.st;
-        draft[set].team_players[team].nd = players.nd;
+        draft[set].team_players[team].st = {
+          ...players.st,
+          serve: draft[set].team_players[team].st.serve,
+        };
+        draft[set].team_players[team].nd = {
+          ...players.nd,
+          serve: draft[set].team_players[team].nd.serve,
+        };
       });
       transaction.update(ref, payload);
     });

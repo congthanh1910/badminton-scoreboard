@@ -586,7 +586,7 @@ function MatchBoardContent({
                     <div className="flex gap-1 items-center justify-end">
                       <Label
                         htmlFor="player-a-st-name"
-                        className="text-xl overflow-hidden whitespace-nowrap text-ellipsis"
+                        className="text-xl overflow-hidden whitespace-nowrap text-ellipsis flex-1 text-right"
                       >
                         {data[set].team_players.a.st.name}
                       </Label>
@@ -594,7 +594,7 @@ function MatchBoardContent({
                         className="size-5"
                         id="player-a-st-name"
                         checked={data[set].team_players.a.st.serve}
-                        disabled={isPending}
+                        disabled={isPending || data[set].team_score.a % 2 === 0}
                         onCheckedChange={checked =>
                           checked !== 'indeterminate' && checked && updateServe('a', 'st')
                         }
@@ -603,7 +603,7 @@ function MatchBoardContent({
                     <div className="flex gap-1 items-center justify-end">
                       <Label
                         htmlFor="player-a-nd-name"
-                        className="text-xl overflow-hidden whitespace-nowrap text-ellipsis"
+                        className="text-xl overflow-hidden whitespace-nowrap text-ellipsis flex-1 text-right"
                       >
                         {data[set].team_players.a.nd.name}
                       </Label>
@@ -611,7 +611,7 @@ function MatchBoardContent({
                         className="size-5"
                         id="player-a-nd-name"
                         checked={data[set].team_players.a.nd.serve}
-                        disabled={isPending}
+                        disabled={isPending || data[set].team_score.a % 2 !== 0}
                         onCheckedChange={checked =>
                           checked !== 'indeterminate' && checked && updateServe('a', 'nd')
                         }
@@ -644,14 +644,14 @@ function MatchBoardContent({
                         className="size-5"
                         id="player-b-st-name"
                         checked={data[set].team_players.b.st.serve}
-                        disabled={isPending}
+                        disabled={isPending || data[set].team_score.b % 2 !== 0}
                         onCheckedChange={checked =>
                           checked !== 'indeterminate' && checked && updateServe('b', 'st')
                         }
                       />
                       <Label
                         htmlFor="player-b-st-name"
-                        className="text-xl overflow-hidden whitespace-nowrap text-ellipsis"
+                        className="text-xl overflow-hidden whitespace-nowrap text-ellipsis flex-1 text-left"
                       >
                         {data[set].team_players.b.st.name}
                       </Label>
@@ -661,14 +661,14 @@ function MatchBoardContent({
                         className="size-5"
                         id="player-b-1-name"
                         checked={data[set].team_players.b.nd.serve}
-                        disabled={isPending}
+                        disabled={isPending || data[set].team_score.b % 2 === 0}
                         onCheckedChange={checked =>
                           checked !== 'indeterminate' && checked && updateServe('b', 'nd')
                         }
                       />
                       <Label
                         htmlFor="player-b-1-name"
-                        className="text-xl overflow-hidden whitespace-nowrap text-ellipsis"
+                        className="text-xl overflow-hidden whitespace-nowrap text-ellipsis flex-1 text-left"
                       >
                         {data[set].team_players.b.nd.name}
                       </Label>
