@@ -125,30 +125,32 @@ export class Match {
       const payload = produce(data, draft => {
         const score = draft[set].team_score[team] + value;
         draft[set].team_score[team] = score;
-        const isServing = [
-          draft[set].team_players[team].st.serve,
-          draft[set].team_players[team].nd.serve,
-        ].some(serve => serve);
-        if (isServing) {
-          const players = this.swapPlayers(
-            draft[set].team_players[team].st,
-            draft[set].team_players[team].nd
-          );
-          draft[set].team_players[team].st = players.st;
-          draft[set].team_players[team].nd = players.nd;
-        } else {
-          const isEvenScore = score % 2 === 0;
-          draft[set].team_players.a.st.serve = false;
-          draft[set].team_players.a.nd.serve = false;
-          draft[set].team_players.b.st.serve = false;
-          draft[set].team_players.b.nd.serve = false;
-          if (team === 'a') {
-            draft[set].team_players.a.st.serve = !isEvenScore;
-            draft[set].team_players.a.nd.serve = isEvenScore;
-          }
-          if (team === 'b') {
-            draft[set].team_players.b.st.serve = isEvenScore;
-            draft[set].team_players.b.nd.serve = !isEvenScore;
+        if (value > 0) {
+          const isServing = [
+            draft[set].team_players[team].st.serve,
+            draft[set].team_players[team].nd.serve,
+          ].some(serve => serve);
+          if (isServing) {
+            const players = this.swapPlayers(
+              draft[set].team_players[team].st,
+              draft[set].team_players[team].nd
+            );
+            draft[set].team_players[team].st = players.st;
+            draft[set].team_players[team].nd = players.nd;
+          } else {
+            const isEvenScore = score % 2 === 0;
+            draft[set].team_players.a.st.serve = false;
+            draft[set].team_players.a.nd.serve = false;
+            draft[set].team_players.b.st.serve = false;
+            draft[set].team_players.b.nd.serve = false;
+            if (team === 'a') {
+              draft[set].team_players.a.st.serve = !isEvenScore;
+              draft[set].team_players.a.nd.serve = isEvenScore;
+            }
+            if (team === 'b') {
+              draft[set].team_players.b.st.serve = isEvenScore;
+              draft[set].team_players.b.nd.serve = !isEvenScore;
+            }
           }
         }
       });

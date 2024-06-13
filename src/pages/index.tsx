@@ -162,7 +162,7 @@ function MenuSheet() {
       <SheetTrigger className="h-8 w-8 inline-flex items-center rounded-md justify-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2">
         <IcMenu />
       </SheetTrigger>
-      <SheetContent>
+      <SheetContent onOpenAutoFocus={event => event.preventDefault()}>
         <SheetHeader>
           <SheetTitle>
             Welcome <i>{username}</i>
